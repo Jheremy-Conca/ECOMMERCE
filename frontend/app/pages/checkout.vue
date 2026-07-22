@@ -2,6 +2,10 @@
 const cartStore = useCartStore()
 const router = useRouter()
 
+definePageMeta({
+  middleware: 'auth',
+})
+
 const form = reactive({
   fullName: '',
   street: '',
@@ -39,6 +43,7 @@ async function submitOrder() {
 function goHome() {
   router.push('/')
 }
+
 </script>
 
 <template>
@@ -75,7 +80,7 @@ function goHome() {
             class="w-full border border-zinc-300 dark:border-zinc-700 bg-transparent rounded px-3 py-2 disabled:opacity-50" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm mb-1">Ciudad</label>
             <input v-model="form.city" type="text" required :disabled="isLoading"
@@ -89,7 +94,7 @@ function goHome() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm mb-1">Código postal</label>
             <input v-model="form.zipCode" type="text" required :disabled="isLoading"

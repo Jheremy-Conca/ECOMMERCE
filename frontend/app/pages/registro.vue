@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const form = reactive({
     name: '',
@@ -11,6 +12,18 @@ const form = reactive({
 
 const validationError = ref('')
 const { isLoading, error: submitError, run } = useAsyncAction()
+
+const redirectPath = computed(() => (route.query.redirect as string) || '/')
+
+const infoMessage = computed(() => {
+    if (redirectPath.value.startsWith('/checkout')) {
+        return 'Crea una cuenta para continuar tu compra.'
+    }
+    if (route.query.redirect) {
+        return 'Crea una cuenta para continuar.'
+    }
+    return ''
+})
 
 async function submitRegistro() {
     validationError.value = ''
@@ -42,14 +55,21 @@ async function submitRegistro() {
     if (result) {
         const { showToast } = useToast()
         showToast('Cuenta creada correctamente')
-        router.push('/')
+        router.push(redirectPath.value)
     }
 }
 </script>
 
 <template>
     <div class="max-w-md mx-auto px-4 py-16">
-        <h1 class="text-2xl font-bold mb-8">Crear cuenta</h1>
+        <h1 class="text-2xl font-bold mb-2">Crear cuenta</h1>
+
+        <div v-if="infoMessage"
+            class="flex items-start gap-3 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-3 mb-6">
+            <span class="text-blue-400 text-lg leading-none">ℹ️</span>
+            <p class="text-sm text-blue-400">{{ infoMessage }}</p>
+        </div>
+        <div v-else class="mb-8" />
 
         <form @submit.prevent="submitRegistro" class="space-y-4">
             <div>
@@ -88,7 +108,8 @@ async function submitRegistro() {
 
         <p class="text-sm text-zinc-500 mt-6 text-center">
             ¿Ya tienes cuenta?
-            <NuxtLink to="/login" class="text-blue-400 underline">Inicia sesión</NuxtLink>
+            <NuxtLink :to="{ path: '/login', query: route.query.redirect ? { redirect: route.query.redirect } : {} }"
+                class="text-blue-400 underline">Inicia sesión</NuxtLink>
         </p>
     </div>
 </template>
