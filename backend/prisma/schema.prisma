@@ -133,6 +133,8 @@ model Order {
   user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   status    OrderStatus @default(PENDING)
   total     Decimal     @db.Decimal(10, 2)
+  invoiceNumber String? @unique
+  invoiceUrl    String?
 
   addressId String?
   address   Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)

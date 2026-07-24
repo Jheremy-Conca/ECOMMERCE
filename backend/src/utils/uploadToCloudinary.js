@@ -34,3 +34,22 @@ export const deleteFromCloudinary = async (imageUrl) => {
     console.error('Error al eliminar imagen de Cloudinary:', err.message);
   }
 };
+
+// Sube un buffer de PDF a Cloudinary como recurso "raw" (no imagen) y devuelve la URL segura
+export const uploadRawToCloudinary = (buffer, folder = 'invoices', publicId) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'raw',
+        public_id: publicId, // ej: invoiceNumber, para que la URL sea predecible
+        format: 'pdf',
+      },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result.secure_url);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+};

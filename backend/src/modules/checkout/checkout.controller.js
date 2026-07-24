@@ -4,6 +4,7 @@ import stripe from '../../config/stripe.js';
 import { env } from '../../config/env.js';
 import { createCheckoutSchema } from './checkout.validation.js';
 import * as checkoutService from './checkout.service.js';
+import * as invoiceService from './invoice.service.js';
 
 export const createCheckoutSession = async (req, res) => {
   try {
@@ -14,6 +15,16 @@ export const createCheckoutSession = async (req, res) => {
 
     const result = await checkoutService.createCheckoutSession(req.user.id, parsed.data);
     return success(res, result, 'Sesión de pago creada');
+  } catch (err) {
+    return error(res, err.message, 400);
+  }
+};
+
+export const getOrderInvoice = async (req, res) => {
+  try {
+    const order = await checkoutService.getOrderWithOwnershipCheck(req.params.orderId, req.user);
+    const result = await invoiceService.generateInvoiceForOrder(order.id); // idempotente: si ya existe, la devuelve tal cual
+    return success(res, { invoiceUrl: result.invoiceUrl, invoiceNumber: result.invoiceNumber }, 'Boleta lista');
   } catch (err) {
     return error(res, err.message, 400);
   }

@@ -2,6 +2,7 @@
 import prisma from '../../config/db.js';
 import stripe from '../../config/stripe.js';
 import { env } from '../../config/env.js';
+import { generateInvoiceForOrder } from './invoice.service.js';
 
 // Resuelve la dirección del pedido: reutiliza una guardada (validando que sea del usuario)
 // o crea una nueva, según lo que haya mandado el cliente (validado en checkout.validation.js)
@@ -122,4 +123,30 @@ export const confirmOrderFromSession = async (session) => {
   if (cart) {
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
   }
+
+  // La boleta se genera aparte, fuera de la transacción crítica: si falla,
+  // el pago y el descuento de stock ya quedaron confirmados igual.
+  try {
+    await generateInvoiceForOrder(orderId);
+  } catch (err) {
+    console.error('Error generando la boleta para el pedido', orderId, ':', err.message);
+  }
+};
+
+// Verifica que el pedido exista y pertenezca al usuario logueado (o que sea admin)
+export const getOrderWithOwnershipCheck = async (orderId, user) => {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+  if (!order) {
+    throw new Error('Pedido no encontrado');
+  }
+
+  const isOwner = order.userId === user.id;
+  const isAdmin = user.role === 'admin';
+
+  if (!isOwner && !isAdmin) {
+    throw new Error('No tenés permiso para ver este pedido');
+  }
+
+  return order;
 };
