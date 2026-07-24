@@ -15,6 +15,12 @@ const { isLoading, error: submitError, run } = useAsyncAction()
 
 const redirectPath = computed(() => (route.query.redirect as string) || '/')
 
+useSeoMeta({
+    title: 'Crear cuenta',
+    description: 'Regístrate para empezar a comprar.',
+    robots: 'noindex',
+})
+
 const infoMessage = computed(() => {
     if (redirectPath.value.startsWith('/checkout')) {
         return 'Crea una cuenta para continuar tu compra.'
@@ -46,8 +52,9 @@ async function submitRegistro() {
     const result = await run(() => {
         authStore.login({
             id: '1',
-            fullName: form.name, // en registro.vue
+            fullName: form.name,
             email: form.email,
+            role: 'cliente',
         })
         return true
     })

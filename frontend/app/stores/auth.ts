@@ -1,10 +1,13 @@
 import { defineStore } from 'pinia'
 
+export type UserRole = 'admin' | 'cliente' | 'vendedor'
+
 export interface User {
   id: string
   fullName: string
   email: string
   phone?: string
+  role: UserRole
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -14,6 +17,7 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isLoggedIn: (state) => !!state.user,
+    isAdmin: (state) => state.user?.role === 'admin',
   },
 
   actions: {

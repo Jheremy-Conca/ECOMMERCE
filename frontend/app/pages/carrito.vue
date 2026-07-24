@@ -1,4 +1,11 @@
 <script setup lang="ts">
+
+useSeoMeta({
+  title: 'Mi carrito',
+  description: 'Revisa los productos en tu carrito antes de pagar.',
+  robots: 'noindex',
+})
+
 const cartStore = useCartStore()
 </script>
 

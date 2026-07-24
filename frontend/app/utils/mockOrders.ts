@@ -8,6 +8,23 @@ export interface MockOrderItem {
 
 export interface MockOrder {
   id: string
+  customerName: string
+  createdAt: string
+  status: OrderStatus
+  total: number
+  items: MockOrderItem[]
+}
+
+export interface MockOrderItem {
+  productName: string
+  quantity: number
+  unitPrice: number
+}
+
+export interface MockOrder {
+  id: string
+  customerName: string
+  customerEmail: string
   createdAt: string
   status: OrderStatus
   total: number
@@ -17,6 +34,8 @@ export interface MockOrder {
 export const mockOrders: MockOrder[] = [
   {
     id: 'ORD-1001',
+    customerName: 'Lucía Fernández',
+    customerEmail: 'concajheremy@gmail.com',
     createdAt: '2026-07-15',
     status: 'DELIVERED',
     total: 379.80,
@@ -26,6 +45,8 @@ export const mockOrders: MockOrder[] = [
   },
   {
     id: 'ORD-1002',
+    customerName: 'Diego Ramírez',
+    customerEmail: 'diego.ramirez@example.com',
     createdAt: '2026-07-18',
     status: 'SHIPPED',
     total: 149.70,
@@ -35,6 +56,8 @@ export const mockOrders: MockOrder[] = [
   },
   {
     id: 'ORD-1003',
+    customerName: 'Valeria Torres',
+    customerEmail: 'concajheremy@gmail.com',
     createdAt: '2026-07-20',
     status: 'PENDING',
     total: 229.80,

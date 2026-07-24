@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { mockProducts as mockProductsData, type Product } from '~/utils/mockProducts'
 
+useSeoMeta({
+  title: 'Productos',
+  description: 'Explora todo nuestro catálogo de productos por categoría.',
+  ogTitle: 'Productos | Mi Tienda',
+  ogDescription: 'Explora todo nuestro catálogo de productos por categoría.',
+  ogImage: '/apple-touch-icon.png',
+  ogType: 'website',
+  twitterCard: 'summary',
+  twitterTitle: 'Productos | Mi Tienda',
+  twitterDescription: 'Explora todo nuestro catálogo de productos por categoría.',
+  twitterImage: '/apple-touch-icon.png',
+})
+
 const { isLoading, error, run } = useAsyncAction()
 const products = ref<Product[]>([])
 const selectedCategory = ref<string>('Todas')
@@ -37,27 +50,19 @@ const filteredProducts = computed(() => {
 
     <div v-else-if="error" class="text-center py-20">
       <p class="text-red-500 mb-4">{{ error }}</p>
-      <button
-        @click="loadProducts"
-        class="text-sm underline hover:no-underline"
-      >
+      <button @click="loadProducts" class="text-sm underline hover:no-underline">
         Reintentar
       </button>
     </div>
 
     <template v-else>
       <div class="flex gap-2 flex-wrap mb-8">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          @click="selectedCategory = cat"
-          :class="[
-            'px-4 py-2 rounded-full text-sm border transition-colors',
-            selectedCategory === cat
-              ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
-              : 'border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-          ]"
-        >
+        <button v-for="cat in categories" :key="cat" @click="selectedCategory = cat" :class="[
+          'px-4 py-2 rounded-full text-sm border transition-colors',
+          selectedCategory === cat
+            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
+            : 'border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+        ]">
           {{ cat }}
         </button>
       </div>
@@ -67,11 +72,7 @@ const filteredProducts = computed(() => {
       </div>
 
       <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <ProductCard
-          v-for="product in filteredProducts"
-          :key="product.id"
-          :product="product"
-        />
+        <ProductCard v-for="product in filteredProducts" :key="product.id" :product="product" />
       </div>
     </template>
   </div>

@@ -24,13 +24,17 @@ const authStore = useAuthStore()
           </NuxtLink>
 
           <div v-else class="flex items-center gap-2 text-sm">
+            <NuxtLink v-if="authStore.user?.role === 'admin'" to="/admin"
+              class="hover:text-zinc-500 dark:hover:text-zinc-400">
+              Admin
+            </NuxtLink>
             <NuxtLink to="/cuenta" class="hidden sm:inline hover:text-zinc-500 dark:hover:text-zinc-400">
               {{ authStore.user?.fullName }}
             </NuxtLink>
             <button
-              @click="() => { authStore.logout(); useToast().showToast('Sesión cerrada', 'info'); navigateTo('/') }"
+              @click="async () => { authStore.logout(); useToast().showToast('Sesión cerrada', 'info'); await navigateTo('/') }"
               class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
-              Salir
+              Cerrar sesión
             </button>
           </div>
 

@@ -6,6 +6,12 @@ definePageMeta({
   middleware: 'auth',
 })
 
+useSeoMeta({
+  title: 'Checkout',
+  description: 'Completa tus datos de envío para finalizar tu compra.',
+  robots: 'noindex',
+})
+
 const form = reactive({
   fullName: '',
   street: '',

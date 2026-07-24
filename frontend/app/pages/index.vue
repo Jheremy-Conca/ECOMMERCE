@@ -11,6 +11,19 @@ async function loadProducts() {
   }
 }
 
+useSeoMeta({
+  title: 'Inicio',
+  description: 'Descubre nuestra selección de productos. Envíos a todo el país.',
+  ogTitle: 'Mi Tienda',
+  ogDescription: 'Descubre nuestra selección de productos. Envíos a todo el país.',
+  ogImage: '/apple-touch-icon.png',
+  ogType: 'website',
+  twitterCard: 'summary',
+  twitterTitle: 'Mi Tienda',
+  twitterDescription: 'Descubre nuestra selección de productos. Envíos a todo el país.',
+  twitterImage: '/apple-touch-icon.png',
+})
+
 onMounted(() => {
   loadProducts()
 })
@@ -27,20 +40,13 @@ onMounted(() => {
 
     <div v-else-if="error" class="text-center py-20">
       <p class="text-red-500 mb-4">{{ error }}</p>
-      <button
-        @click="loadProducts"
-        class="text-sm underline hover:no-underline"
-      >
+      <button @click="loadProducts" class="text-sm underline hover:no-underline">
         Reintentar
       </button>
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-      <ProductCard
-        v-for="product in products"
-        :key="product.id"
-        :product="product"
-      />
+      <ProductCard v-for="product in products" :key="product.id" :product="product" />
     </div>
   </div>
 </template>
