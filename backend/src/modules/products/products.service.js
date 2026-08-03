@@ -156,3 +156,22 @@ export const listProducts = async ({ page, limit, categoryId, search }) => {
     totalPages: Math.ceil(total / limit),
   };
 };
+
+export const listProductsAdmin = async ({ page, limit }) => {
+  const [items, total] = await Promise.all([
+    prisma.product.findMany({
+      include: { category: true },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.product.count(),
+  ]);
+
+  return {
+    items,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  };
+};

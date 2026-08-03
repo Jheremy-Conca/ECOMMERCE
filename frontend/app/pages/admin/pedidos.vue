@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrderStatus } from '~/utils/mockOrders'
+import type { OrderStatus } from '~/stores/orders'
 
 definePageMeta({
     layout: 'admin',
@@ -12,6 +12,19 @@ useSeoMeta({
 })
 
 const ordersStore = useOrdersStore()
+
+const isLoading = ref(true)
+const loadError = ref('')
+
+onMounted(async () => {
+    try {
+        await ordersStore.fetchOrders()
+    } catch (err: any) {
+        loadError.value = err.message || 'Error al cargar pedidos'
+    } finally {
+        isLoading.value = false
+    }
+})
 
 const statusOptions: OrderStatus[] = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']
 
@@ -33,6 +46,7 @@ const statusStyles: Record<OrderStatus, string> = {
 
 const filterStatus = ref<OrderStatus | 'ALL'>('ALL')
 const expandedOrderId = ref<string | null>(null)
+const updatingOrderId = ref<string | null>(null)
 
 function toggleExpanded(orderId: string) {
     expandedOrderId.value = expandedOrderId.value === orderId ? null : orderId
@@ -43,9 +57,16 @@ const filteredOrders = computed(() => {
     return ordersStore.orders.filter(o => o.status === filterStatus.value)
 })
 
-function handleStatusChange(orderId: string, event: Event) {
+async function handleStatusChange(orderId: string, event: Event) {
     const newStatus = (event.target as HTMLSelectElement).value as OrderStatus
-    ordersStore.updateOrderStatus(orderId, newStatus)
+    updatingOrderId.value = orderId
+    try {
+        await ordersStore.updateOrderStatus(orderId, newStatus)
+    } catch (err: any) {
+        alert(err.message || 'No se pudo actualizar el estado del pedido')
+    } finally {
+        updatingOrderId.value = null
+    }
 }
 </script>
 
@@ -63,7 +84,10 @@ function handleStatusChange(orderId: string, event: Event) {
             </select>
         </div>
 
-        <div v-if="filteredOrders.length === 0" class="text-zinc-500 text-center py-10">
+        <p v-if="isLoading" class="text-zinc-500 text-center py-10">Cargando...</p>
+        <p v-else-if="loadError" class="text-red-500 text-center py-10">{{ loadError }}</p>
+
+        <div v-else-if="filteredOrders.length === 0" class="text-zinc-500 text-center py-10">
             No hay pedidos con este estado.
         </div>
 
@@ -79,7 +103,7 @@ function handleStatusChange(orderId: string, event: Event) {
                         <span class="min-w-0">
                             <p class="font-medium">{{ order.id }} · {{ order.customerName }}</p>
                             <p class="text-sm text-zinc-500">
-                                {{ order.createdAt }} ·
+                                {{ new Date(order.createdAt).toLocaleDateString() }} ·
                                 {{ order.items.length }} {{ order.items.length === 1 ? 'producto' : 'productos' }}
                             </p>
                         </span>
@@ -91,8 +115,9 @@ function handleStatusChange(orderId: string, event: Event) {
                         {{ statusLabels[order.status] }}
                     </span>
 
-                    <select :value="order.status" @change="handleStatusChange(order.id, $event)"
-                        class="bg-zinc-900 text-white border border-zinc-700 rounded-md px-3 py-2 text-sm shrink-0 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-600">
+                    <select :value="order.status" :disabled="updatingOrderId === order.id"
+                        @change="handleStatusChange(order.id, $event)"
+                        class="bg-zinc-900 text-white border border-zinc-700 rounded-md px-3 py-2 text-sm shrink-0 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-600 disabled:opacity-50">
                         <option v-for="status in statusOptions" :key="status" :value="status"
                             class="bg-zinc-900 text-white">
                             {{ statusLabels[status] }}

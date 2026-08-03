@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { mockProducts as mockProductsData, type Product } from '~/utils/mockProducts'
-
-const { isLoading, error, run } = useAsyncAction()
-const products = ref<Product[]>([])
+const { products, isLoaded, fetchProducts } = useProducts()
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 async function loadProducts() {
-  const result = await run(() => mockProductsData, { delay: 500 })
-  if (result) {
-    products.value = result
+  if (isLoaded.value) return
+  isLoading.value = true
+  error.value = null
+  try {
+    await fetchProducts()
+  } catch (e: any) {
+    error.value = e?.data?.message ?? 'No se pudieron cargar los productos'
+  } finally {
+    isLoading.value = false
   }
 }
 

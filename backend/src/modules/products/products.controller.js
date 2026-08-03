@@ -89,3 +89,16 @@ export const deleteProduct = async (req, res) => {
     return error(res, err.message, 400);
   }
 };
+
+export const listProductsAdminHandler = async (req, res) => {
+  try {
+    const parsed = listProductsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return error(res, parsed.error.errors[0].message, 400);
+    }
+    const result = await productsService.listProductsAdmin(parsed.data);
+    return success(res, result);
+  } catch (err) {
+    return error(res, err.message, 500);
+  }
+};

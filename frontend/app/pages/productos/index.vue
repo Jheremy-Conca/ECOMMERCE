@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { mockProducts as mockProductsData, type Product } from '~/utils/mockProducts'
-
 useSeoMeta({
   title: 'Productos',
   description: 'Explora todo nuestro catálogo de productos por categoría.',
@@ -15,14 +13,11 @@ useSeoMeta({
 })
 
 const { isLoading, error, run } = useAsyncAction()
-const products = ref<Product[]>([])
+const { products, fetchProducts } = useProducts()
 const selectedCategory = ref<string>('Todas')
 
 async function loadProducts() {
-  const result = await run(() => mockProductsData, { delay: 500 })
-  if (result) {
-    products.value = result
-  }
+  await run(() => fetchProducts())
 }
 
 onMounted(() => {
@@ -30,13 +25,16 @@ onMounted(() => {
 })
 
 const categories = computed(() => {
-  const unique = new Set(products.value.map(p => p.category))
-  return ['Todas', ...unique]
+  const unique = new Map<string, string>()
+  for (const p of products.value) {
+    unique.set(p.category.id, p.category.name)
+  }
+  return [{ id: 'Todas', name: 'Todas' }, ...Array.from(unique, ([id, name]) => ({ id, name }))]
 })
 
 const filteredProducts = computed(() => {
   if (selectedCategory.value === 'Todas') return products.value
-  return products.value.filter(p => p.category === selectedCategory.value)
+  return products.value.filter(p => p.category.id === selectedCategory.value)
 })
 </script>
 
@@ -57,13 +55,13 @@ const filteredProducts = computed(() => {
 
     <template v-else>
       <div class="flex gap-2 flex-wrap mb-8">
-        <button v-for="cat in categories" :key="cat" @click="selectedCategory = cat" :class="[
+        <button v-for="cat in categories" :key="cat.id" @click="selectedCategory = cat.id" :class="[
           'px-4 py-2 rounded-full text-sm border transition-colors',
-          selectedCategory === cat
+          selectedCategory === cat.id
             ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
             : 'border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
         ]">
-          {{ cat }}
+          {{ cat.name }}
         </button>
       </div>
 

@@ -10,9 +10,13 @@ import {
   addProductImages,
   removeProductImage,
   deleteProduct,
+  listProductsAdminHandler,
 } from './products.controller.js';
 
 const router = Router();
+
+// Ruta admin fija — DEBE ir antes de /:id, o Express la matchea ahí con id="admin"
+router.get('/admin', authMiddleware, requireRole('admin'), listProductsAdminHandler);
 
 // Rutas públicas (catálogo)
 router.get('/', listProducts);
@@ -23,7 +27,6 @@ router.post('/', authMiddleware, requireRole('admin'), uploadImages, createProdu
 router.patch('/:id', authMiddleware, requireRole('admin'), updateProduct);
 router.delete('/:id', authMiddleware, requireRole('admin'), deleteProduct);
 
-// Gestión de imágenes, separada del PATCH de datos
 router.post('/:id/images', authMiddleware, requireRole('admin'), uploadImages, addProductImages);
 router.delete('/:id/images', authMiddleware, requireRole('admin'), removeProductImage);
 

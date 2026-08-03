@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Category } from '~/utils/mockCategories'
+import type { Category } from '~/stores/categories'
 
 definePageMeta({
     layout: 'admin',
@@ -13,26 +13,36 @@ useSeoMeta({
 
 const categoriesStore = useCategoriesStore()
 
+const isLoading = ref(true)
+const loadError = ref('')
+
+onMounted(async () => {
+    try {
+        await categoriesStore.fetchCategories()
+    } catch (err: any) {
+        loadError.value = err.message || 'Error al cargar categorías'
+    } finally {
+        isLoading.value = false
+    }
+})
+
 const isFormOpen = ref(false)
 const editingId = ref<string | null>(null)
+const isSubmitting = ref(false)
 
-const emptyForm = { name: '', description: '' }
-const form = reactive({ ...emptyForm })
+const form = reactive({ name: '' })
 const validationError = ref('')
 
 function openCreate() {
     editingId.value = null
-    Object.assign(form, emptyForm)
+    form.name = ''
     validationError.value = ''
     isFormOpen.value = true
 }
 
 function openEdit(category: Category) {
     editingId.value = category.id
-    Object.assign(form, {
-        name: category.name,
-        description: category.description,
-    })
+    form.name = category.name
     validationError.value = ''
     isFormOpen.value = true
 }
@@ -41,23 +51,34 @@ function closeForm() {
     isFormOpen.value = false
 }
 
-function handleSubmit() {
+async function handleSubmit() {
     if (!form.name.trim()) {
         validationError.value = 'El nombre es obligatorio.'
         return
     }
 
-    if (editingId.value) {
-        categoriesStore.updateCategory(editingId.value, { ...form })
-    } else {
-        categoriesStore.addCategory({ ...form })
+    isSubmitting.value = true
+    try {
+        if (editingId.value) {
+            await categoriesStore.updateCategory(editingId.value, { name: form.name })
+        } else {
+            await categoriesStore.addCategory({ name: form.name })
+        }
+        closeForm()
+    } catch (err: any) {
+        validationError.value = err.message || 'Ocurrió un error al guardar'
+    } finally {
+        isSubmitting.value = false
     }
-    closeForm()
 }
 
-function handleDelete(category: Category) {
+async function handleDelete(category: Category) {
     if (confirm(`¿Eliminar "${category.name}"? Esta acción no se puede deshacer.`)) {
-        categoriesStore.deleteCategory(category.id)
+        try {
+            await categoriesStore.deleteCategory(category.id)
+        } catch (err: any) {
+            alert(err.message || 'No se pudo eliminar la categoría')
+        }
     }
 }
 </script>
@@ -90,18 +111,12 @@ function handleDelete(category: Category) {
                             class="w-full border border-zinc-300 dark:border-zinc-700 bg-transparent rounded-md px-3 py-2" />
                     </div>
 
-                    <div>
-                        <label class="text-sm text-zinc-500 block mb-1">Descripción</label>
-                        <textarea v-model="form.description" rows="3"
-                            class="w-full border border-zinc-300 dark:border-zinc-700 bg-transparent rounded-md px-3 py-2"></textarea>
-                    </div>
-
                     <p v-if="validationError" class="text-red-500 text-sm">{{ validationError }}</p>
 
                     <div class="flex gap-3">
-                        <button type="submit"
-                            class="px-4 py-2 bg-zinc-900 text-white rounded-md text-sm font-medium hover:bg-zinc-700">
-                            {{ editingId ? 'Guardar cambios' : 'Crear categoría' }}
+                        <button type="submit" :disabled="isSubmitting"
+                            class="px-4 py-2 bg-zinc-900 text-white rounded-md text-sm font-medium hover:bg-zinc-700 disabled:opacity-50">
+                            {{ isSubmitting ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Crear categoría') }}
                         </button>
                         <button type="button" @click="closeForm"
                             class="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm font-medium text-black dark:text-white">
@@ -112,7 +127,10 @@ function handleDelete(category: Category) {
             </div>
         </Transition>
 
-        <div v-if="categoriesStore.categories.length === 0" class="text-zinc-500 text-center py-10">
+        <p v-if="isLoading" class="text-zinc-500 text-center py-10">Cargando...</p>
+        <p v-else-if="loadError" class="text-red-500 text-center py-10">{{ loadError }}</p>
+
+        <div v-else-if="categoriesStore.categories.length === 0" class="text-zinc-500 text-center py-10">
             No hay categorías.
         </div>
 
@@ -121,7 +139,6 @@ function handleDelete(category: Category) {
                 class="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 flex items-center gap-4">
                 <div class="flex-1 min-w-0">
                     <p class="font-medium truncate">{{ category.name }}</p>
-                    <p class="text-sm text-zinc-500 truncate">{{ category.description }}</p>
                 </div>
 
                 <div class="flex gap-2 shrink-0">

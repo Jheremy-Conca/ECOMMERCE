@@ -1,16 +1,18 @@
 // src/modules/checkout/checkout.service.js
-import prisma from '../../config/db.js';
-import stripe from '../../config/stripe.js';
-import { env } from '../../config/env.js';
-import { generateInvoiceForOrder } from './invoice.service.js';
+import prisma from "../../config/db.js";
+import stripe from "../../config/stripe.js";
+import { env } from "../../config/env.js";
+import { generateInvoiceForOrder } from "./invoice.service.js";
 
 // Resuelve la dirección del pedido: reutiliza una guardada (validando que sea del usuario)
 // o crea una nueva, según lo que haya mandado el cliente (validado en checkout.validation.js)
 const resolveAddress = async (userId, { addressId, address }) => {
   if (addressId) {
-    const existing = await prisma.address.findUnique({ where: { id: addressId } });
+    const existing = await prisma.address.findUnique({
+      where: { id: addressId },
+    });
     if (!existing || existing.userId !== userId) {
-      throw new Error('La dirección indicada no existe o no te pertenece');
+      throw new Error("La dirección indicada no existe o no te pertenece");
     }
     return existing;
   }
@@ -24,7 +26,7 @@ export const createCheckoutSession = async (userId, data) => {
   });
 
   if (!cart || cart.items.length === 0) {
-    throw new Error('El carrito está vacío');
+    throw new Error("El carrito está vacío");
   }
 
   // Revalida stock al momento de pagar: pudo cambiar desde que se agregó al carrito
@@ -33,14 +35,16 @@ export const createCheckoutSession = async (userId, data) => {
       throw new Error(`"${item.product.name}" ya no está disponible`);
     }
     if (item.quantity > item.product.stock) {
-      throw new Error(`Solo hay ${item.product.stock} unidades disponibles de "${item.product.name}"`);
+      throw new Error(
+        `Solo hay ${item.product.stock} unidades disponibles de "${item.product.name}"`,
+      );
     }
   }
 
   const address = await resolveAddress(userId, data);
   const total = cart.items.reduce(
     (sum, item) => sum + Number(item.product.price) * item.quantity,
-    0
+    0,
   );
 
   const order = await prisma.order.create({
@@ -48,7 +52,7 @@ export const createCheckoutSession = async (userId, data) => {
       userId,
       addressId: address.id,
       total,
-      status: 'PENDING',
+      status: "PENDING",
       items: {
         create: cart.items.map((item) => ({
           productId: item.productId,
@@ -60,8 +64,8 @@ export const createCheckoutSession = async (userId, data) => {
       },
       payment: {
         create: {
-          status: 'PENDING',
-          method: 'stripe',
+          status: "PENDING",
+          method: "stripe",
           amount: total,
         },
       },
@@ -70,17 +74,17 @@ export const createCheckoutSession = async (userId, data) => {
   });
 
   const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
+    mode: "payment",
     line_items: cart.items.map((item) => ({
       price_data: {
-        currency: 'pen',
+        currency: "pen",
         product_data: { name: item.product.name },
         unit_amount: Math.round(Number(item.product.price) * 100),
       },
       quantity: item.quantity,
     })),
     metadata: { orderId: order.id },
-    success_url: `${env.frontendUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${env.frontendUrl}/checkout/exito?orderId=${order.id}`,
     cancel_url: `${env.frontendUrl}/checkout/cancelado`,
   });
 
@@ -97,17 +101,20 @@ export const confirmOrderFromSession = async (session) => {
   const orderId = session.metadata?.orderId;
   if (!orderId) return;
 
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
-  if (!order || order.status === 'PAID') return; // ya procesado o no existe: idempotente
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+  if (!order || order.status === "PAID") return; // ya procesado o no existe: idempotente
 
   await prisma.$transaction([
     prisma.payment.update({
       where: { orderId },
-      data: { status: 'APPROVED', reference: session.payment_intent },
+      data: { status: "APPROVED", reference: session.payment_intent },
     }),
     prisma.order.update({
       where: { id: orderId },
-      data: { status: 'PAID' },
+      data: { status: "PAID" },
     }),
     ...order.items
       .filter((item) => item.productId)
@@ -115,11 +122,13 @@ export const confirmOrderFromSession = async (session) => {
         prisma.product.update({
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } },
-        })
+        }),
       ),
   ]);
 
-  const cart = await prisma.cart.findUnique({ where: { userId: order.userId } });
+  const cart = await prisma.cart.findUnique({
+    where: { userId: order.userId },
+  });
   if (cart) {
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
   }
@@ -129,7 +138,12 @@ export const confirmOrderFromSession = async (session) => {
   try {
     await generateInvoiceForOrder(orderId);
   } catch (err) {
-    console.error('Error generando la boleta para el pedido', orderId, ':', err.message);
+    console.error(
+      "Error generando la boleta para el pedido",
+      orderId,
+      ":",
+      err.message,
+    );
   }
 };
 
@@ -138,14 +152,14 @@ export const getOrderWithOwnershipCheck = async (orderId, user) => {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
 
   if (!order) {
-    throw new Error('Pedido no encontrado');
+    throw new Error("Pedido no encontrado");
   }
 
   const isOwner = order.userId === user.id;
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === "admin";
 
   if (!isOwner && !isAdmin) {
-    throw new Error('No tenés permiso para ver este pedido');
+    throw new Error("No tenés permiso para ver este pedido");
   }
 
   return order;

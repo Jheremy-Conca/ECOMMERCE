@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import type { AuthApiResponse } from '~/stores/auth'
+
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const { apiFetch } = useApi()
 
 const form = reactive({
     email: '',
     password: '',
-    role: 'cliente' as 'admin' | 'cliente',
 })
 
 const validationError = ref('')
@@ -30,8 +32,6 @@ const infoMessage = computed(() => {
     return ''
 })
 
-
-
 async function submitLogin() {
     validationError.value = ''
 
@@ -40,13 +40,12 @@ async function submitLogin() {
         return
     }
 
-    const result = await run(() => {
-        authStore.login({
-            id: '1',
-            fullName: 'Usuario de Prueba',
-            email: form.email,
-            role: form.role,
+    const result = await run(async () => {
+        const response = await apiFetch<AuthApiResponse>('/auth/login', {
+            method: 'POST',
+            body: { email: form.email, password: form.password },
         })
+        authStore.login(response.data.user, response.data.token)
         return true
     })
 
@@ -81,15 +80,7 @@ async function submitLogin() {
                 <input v-model="form.password" type="password" required :disabled="isLoading"
                     class="w-full border border-zinc-300 dark:border-zinc-700 bg-transparent rounded px-3 py-2 disabled:opacity-50" />
             </div>
-            <!-- TEMPORAL: solo para probar el panel admin sin backend. Borrar al conectar el backend real. -->
-            <div>
-                <label class="block text-sm mb-1">Rol (solo prueba)</label>
-                <select v-model="form.role" :disabled="isLoading"
-                    class="w-full bg-zinc-900 text-white border border-zinc-700 rounded px-3 py-2 disabled:opacity-50 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-600">
-                    <option value="cliente" class="bg-zinc-900 text-white">Cliente</option>
-                    <option value="admin" class="bg-zinc-900 text-white">Admin</option>
-                </select>
-            </div>
+
             <p v-if="validationError" class="text-red-500 text-sm">{{ validationError }}</p>
             <p v-if="submitError" class="text-red-500 text-sm">{{ submitError }}</p>
 

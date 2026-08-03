@@ -1,30 +1,61 @@
-import { defineStore } from "pinia";
-import { mockCategories, type Category } from "~/utils/mockCategories";
+import { defineStore } from 'pinia'
 
-export const useCategoriesStore = defineStore("categories", {
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  parentId: string | null
+}
+
+interface CategoriesResponse {
+  success: boolean
+  message?: string
+  data: Category[]
+}
+
+interface CategoryResponse {
+  success: boolean
+  message?: string
+  data: Category
+}
+
+export const useCategoriesStore = defineStore('categories', {
   state: () => ({
-    categories: [...mockCategories] as Category[],
+    categories: [] as Category[],
+    isLoaded: false,
   }),
 
   actions: {
-    addCategory(category: Omit<Category, "id">) {
-      const newCategory: Category = {
-        ...category,
-        id: crypto.randomUUID(),
-      };
-      this.categories.push(newCategory);
+    async fetchCategories() {
+      const { apiFetch } = useApi()
+      const response = await apiFetch<CategoriesResponse>('/categories')
+      this.categories = response.data
+      this.isLoaded = true
     },
 
-    updateCategory(id: string, changes: Omit<Category, "id">) {
-      const index = this.categories.findIndex((c) => c.id === id);
-      const existing = this.categories[index];
-      if (index === -1 || !existing) return;
-
-      this.categories[index] = { ...existing, ...changes };
+    async addCategory(data: { name: string }) {
+      const { apiFetch } = useApi()
+      const response = await apiFetch<CategoryResponse>('/categories', {
+        method: 'POST',
+        body: data,
+      })
+      this.categories.push(response.data)
     },
 
-    deleteCategory(id: string) {
-      this.categories = this.categories.filter((c) => c.id !== id);
+    async updateCategory(id: string, data: { name: string }) {
+      const { apiFetch } = useApi()
+      const response = await apiFetch<CategoryResponse>(`/categories/${id}`, {
+        method: 'PATCH',
+        body: data,
+      })
+      const index = this.categories.findIndex((c) => c.id === id)
+      if (index !== -1) this.categories[index] = response.data
+    },
+
+    async deleteCategory(id: string) {
+      const { apiFetch } = useApi()
+      await apiFetch(`/categories/${id}`, { method: 'DELETE' })
+      this.categories = this.categories.filter((c) => c.id !== id)
     },
   },
-});
+})

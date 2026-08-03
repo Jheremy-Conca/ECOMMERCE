@@ -1,30 +1,35 @@
 <script setup lang="ts">
-import { mockProducts } from '~/utils/mockProducts'
-
 const route = useRoute()
 const cartStore = useCartStore()
+const { products, getBySlug, fetchProducts } = useProducts()
 
-const product = computed(() =>
-  mockProducts.find(p => p.slug === route.params.slug)
-)
+const product = computed(() => getBySlug(route.params.slug as string))
+
+const { isLoading: isLoadingProduct, run: runLoad } = useAsyncAction()
+
+onMounted(async () => {
+  if (products.value.length === 0) {
+    await runLoad(() => fetchProducts())
+  }
+})
 
 useSeoMeta({
   title: () => product.value ? product.value.name : 'Producto no encontrado',
   description: () => product.value
-    ? product.value.description.slice(0, 160)
+    ? (product.value.description ?? '').slice(0, 160)
     : 'El producto que buscas no está disponible.',
   ogTitle: () => product.value ? `${product.value.name} | Mi Tienda` : 'Producto no encontrado',
   ogDescription: () => product.value
-    ? product.value.description.slice(0, 160)
+    ? (product.value.description ?? '').slice(0, 160)
     : 'El producto que buscas no está disponible.',
-  ogImage: () => product.value?.imageUrl ?? '/apple-touch-icon.png',
+  ogImage: () => product.value?.images?.[0] ?? '/apple-touch-icon.png',
   ogType: 'website',
   twitterCard: () => product.value ? 'summary_large_image' : 'summary',
   twitterTitle: () => product.value ? `${product.value.name} | Mi Tienda` : 'Producto no encontrado',
   twitterDescription: () => product.value
-    ? product.value.description.slice(0, 160)
+    ? (product.value.description ?? '').slice(0, 160)
     : 'El producto que buscas no está disponible.',
-  twitterImage: () => product.value?.imageUrl ?? '/apple-touch-icon.png',
+  twitterImage: () => product.value?.images?.[0] ?? '/apple-touch-icon.png',
   robots: () => product.value ? 'index, follow' : 'noindex, nofollow',
 })
 
@@ -38,29 +43,31 @@ watch(quantity, (val) => {
     quantity.value = product.value.stock
   }
 })
+
 const { isLoading, run } = useAsyncAction()
 
+// después:
 async function addToCart() {
   if (!product.value) return
 
-  const result = await run(() => {
-    cartStore.addItem(product.value!, quantity.value)
-    return true
-  }, { delay: 400 })
+  await run(() => cartStore.addItem(product.value!.id, quantity.value), { delay: 400 })
 
-  if (result) {
-    const { showToast } = useToast()
-    showToast(`${product.value.name} agregado al carrito`)
-  }
+  const { showToast } = useToast()
+  showToast(`${product.value.name} agregado al carrito`)
 }
+
 </script>
 
 <template>
-  <div v-if="product" class="max-w-5xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-6 md:gap-10">
-    <img :src="product.imageUrl" :alt="product.name" class="w-full aspect-square object-cover rounded-lg" />
+  <div v-if="isLoadingProduct" class="flex justify-center py-20">
+    <Spinner size="lg" />
+  </div>
+
+  <div v-else-if="product" class="max-w-5xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-6 md:gap-10">
+    <img :src="product.images[0] ?? '/apple-touch-icon.png'" :alt="product.name" class="w-full aspect-square object-cover rounded-lg" />
 
     <div>
-      <p class="text-sm text-zinc-500 mb-2">{{ product.category }}</p>
+      <p class="text-sm text-zinc-500 mb-2">{{ product.category.name }}</p>
       <h1 class="text-2xl font-bold mb-4">{{ product.name }}</h1>
       <p class="text-zinc-600 dark:text-zinc-400 mb-6">{{ product.description }}</p>
 
@@ -92,6 +99,7 @@ async function addToCart() {
       </div>
     </div>
   </div>
+
   <div v-else class="text-center py-20">
     <p class="text-zinc-500">Producto no encontrado.</p>
     <NuxtLink to="/productos" class="text-blue-400 underline mt-2 inline-block">

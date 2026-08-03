@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { AuthApiResponse } from '~/stores/auth'
+
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const { apiFetch } = useApi()
 
 const form = reactive({
     name: '',
@@ -49,13 +52,16 @@ async function submitRegistro() {
         return
     }
 
-    const result = await run(() => {
-        authStore.login({
-            id: '1',
-            fullName: form.name,
-            email: form.email,
-            role: 'cliente',
+    const result = await run(async () => {
+        const response = await apiFetch<AuthApiResponse>('/auth/register', {
+            method: 'POST',
+            body: {
+                fullName: form.name,
+                email: form.email,
+                password: form.password,
+            },
         })
+        authStore.login(response.data.user, response.data.token)
         return true
     })
 

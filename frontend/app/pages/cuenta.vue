@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { mockOrders as mockOrdersData, type MockOrder, type OrderStatus } from '~/utils/mockOrders'
+import { useOrders, type Order, type OrderStatus } from '~/composables/useOrders'
+
 const authStore = useAuthStore()
+const { fetchOrders } = useOrders()
 
 definePageMeta({
   middleware: 'auth',
@@ -13,12 +15,12 @@ useSeoMeta({
 })
 
 const { isLoading, error, run } = useAsyncAction()
-const orders = ref<MockOrder[]>([])
+const orders = ref<Order[]>([])
 
 async function loadOrders() {
-  const result = await run(() => mockOrdersData, { delay: 500 })
+  const result = await run(() => fetchOrders())
   if (result) {
-    orders.value = result.filter(order => order.customerEmail === authStore.user?.email)
+    orders.value = result
   }
 }
 
@@ -29,17 +31,11 @@ onMounted(() => {
 const statusLabels: Record<OrderStatus, string> = {
   PENDING: 'Pendiente',
   PAID: 'Pagado',
-  SHIPPED: 'Enviado',
-  DELIVERED: 'Entregado',
-  CANCELLED: 'Cancelado',
 }
 
 const statusColors: Record<OrderStatus, string> = {
   PENDING: 'bg-yellow-500/20 text-yellow-500',
   PAID: 'bg-blue-500/20 text-blue-400',
-  SHIPPED: 'bg-purple-500/20 text-purple-400',
-  DELIVERED: 'bg-green-500/20 text-green-400',
-  CANCELLED: 'bg-red-500/20 text-red-400',
 }
 </script>
 
@@ -78,7 +74,7 @@ const statusColors: Record<OrderStatus, string> = {
         <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
           <div class="min-w-0">
             <p class="font-medium truncate">{{ order.id }}</p>
-            <p class="text-sm text-zinc-500">{{ order.createdAt }}</p>
+            <p class="text-sm text-zinc-500">{{ new Date(order.createdAt).toLocaleDateString('es-PE') }}</p>
           </div>
 
           <span :class="['px-3 py-1 rounded-full text-xs font-medium shrink-0', statusColors[order.status]]">
@@ -94,9 +90,12 @@ const statusColors: Record<OrderStatus, string> = {
           </div>
         </div>
 
-        <div class="border-t border-zinc-200 dark:border-zinc-800 pt-3 flex justify-between font-bold">
-          <span>Total</span>
-          <span>S/ {{ order.total.toFixed(2) }}</span>
+        <div class="border-t border-zinc-200 dark:border-zinc-800 pt-3 flex items-center justify-between">
+          <span class="font-bold">Total: S/ {{ order.total.toFixed(2) }}</span>
+          <a v-if="order.invoiceUrl" :href="order.invoiceUrl" target="_blank" rel="noopener"
+            class="text-sm underline hover:no-underline">
+            Ver boleta
+          </a>
         </div>
       </div>
     </div>
